@@ -25,8 +25,8 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         #    v = v + 0.01
         dist.barrier(t)
         t0 = time.time()
-        dist.all_reduce_low_latency(t)
-        #dist.all_reduce(t)
+        #dist.all_reduce_low_latency(t)
+        dist.all_reduce(t)
         t1 = time.time()
         if (i==0 and dist.get_rank()==0):
             print (t)
