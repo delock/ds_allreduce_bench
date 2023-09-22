@@ -14,7 +14,15 @@ export CCL_ATL_SHM=1
 #export CCL_ITT_LEVEL=1
 export CCL_WORKER_COUNT=1
 
+#if turn this line on, need to use a small iteration count such as 50
+#export CCL_SCHED_PROFILE=1
+
 #for 48 core *2
 export CCL_WORKER_AFFINITY=10,22,34,46,58,70,82,94
+#single node
 deepspeed --bind_cores_to_rank --bind_core_list 0-9,12-21,24-33,36-45,48-57,60-69,72-81,84-93 ds_comm_bench.py
+#multi node
+#deepspeed --hostfile hostfile.txt --launcher impi --bind_cores_to_rank ds_comm_bench.py
+#oneccl benchmark
+#mpirun -n 8 ~/oneCCL/build/examples/benchmark/benchmark -d bfloat16 -f 10240 -t 10240 -i 50
 
