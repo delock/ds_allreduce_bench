@@ -23,10 +23,15 @@ deepspeed.init_distributed()
 def alloc_tensors(use_dtype):
     a = torch.ones(1024, 1024, dtype=torch.bfloat16)
     c = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    t = torch.ones(args.elements, dtype=use_dtype) * (dist.get_rank()+1.0)
+    t = torch.ones(args.elements, dtype=use_dtype) * (dist.get_rank()+1.0) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype)
     return a, c, t
 
+def result_tensor(use_dtype):
+    result = torch.ones(args.elements, dtype=use_dtype) * ((dist.get_world_size()+1)*dist.get_world_size()/2) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype) * dist.get_world_size()
+    return result
+
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
+    ref = result_tensor(use_dtype)
     b = torch.ones(1024, 1024, dtype=torch.bfloat16)
     if reuse_buffer:
         a,c,t = alloc_tensors(use_dtype)
@@ -43,8 +48,17 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         else:
             dist.inference_all_reduce(t, async_op=False)
         t1 = time.time()
-        if (i==0 and dist.get_rank()==0):
-            print (t)
+        #if (i==0 and dist.get_rank()==0):
+        if (i==0):
+            if (dist.get_rank() == 0):
+                print (f'[{dist.get_rank()}] max rel diff with ref {((ref-t)/ref).abs().max()}')
+                print (t)
+                root_result = t
+            else:
+                root_result = torch.empty(args.elements, dtype=use_dtype)
+            dist.broadcast(root_result, 0)
+            if (t-root_result).max() != torch.zeros(1, dtype=use_dtype):
+                print (f'[{dist.get_rank()}] result diff with rank 0, correct allreduce must ensure identical result among all ranks')
         t_total += t1-t0
     end = time.time()
     return t_total
@@ -55,4 +69,4 @@ t = test_allreduce(False, dtype, loop_count)
 t1 = time.time()
 
 if dist.get_rank() == 0:
-    print (f'avg duration = {t/(loop_count/1000.0)}ms, E2E={t1-t0}')
+    print (f'num_elements = {args.elements}, dtype = {dtype}\navg duration = {t/(loop_count/1000.0)}ms')
