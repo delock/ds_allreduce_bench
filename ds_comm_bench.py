@@ -69,4 +69,4 @@ t = test_allreduce(False, dtype, loop_count)
 t1 = time.time()
 
 if dist.get_rank() == 0:
-    print (f'num_elements = {args.elements}, dtype = {dtype}\navg duration = {t/(loop_count/1000.0)}ms')
+    print (f'num_elements = {args.elements}, dtype = {dtype} allreduce use {"ccl" if args.ccl else "shm"}\navg duration = {t/(loop_count/1000.0)}ms')
