@@ -20,6 +20,10 @@ elif args.dtype=="fp32":
 
 deepspeed.init_distributed()
 
+if dist.get_rank() == 0:
+    for env in os.environ:
+        print (f"'{env}': '{os.environ[env]}'")
+
 def alloc_tensors(use_dtype):
     a = torch.ones(1024, 1024, dtype=torch.bfloat16)
     c = torch.ones(1024, 1024, dtype=torch.bfloat16)
