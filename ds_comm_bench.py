@@ -37,13 +37,19 @@ def result_tensor(use_dtype):
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
     ref = result_tensor(use_dtype)
     b = torch.ones(1024, 1024, dtype=torch.bfloat16)
+    a_ref,c_ref,t_ref = alloc_tensors(use_dtype)
     if reuse_buffer:
-        a,c,t = alloc_tensors(use_dtype)
+        a = a_ref.clone()
+        c = c_ref.clone()
+        t = t_ref.clone()
     t_total = 0.0
+    rank = dist.get_rank()
     start = time.time()
     for i in range(loop_count):
         if not reuse_buffer:
-            a,c,t = alloc_tensors(use_dtype)
+            a = a_ref.clone()
+            c = c_ref.clone()
+            t = t_ref.clone()
         torch.matmul(a, b, out=c)
         dist.barrier(t)
         t0 = time.time()
@@ -52,18 +58,19 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         else:
             dist.inference_all_reduce(t, async_op=False)
         t1 = time.time()
-        #if (i==0 and dist.get_rank()==0):
-        if (i==0):
-            if (dist.get_rank() == 0):
-                print (f'[{dist.get_rank()}] max rel diff with ref {((ref-t)/ref).abs().max()}')
+        if i==0:
+            if rank == 0:
+                print (f'[{rank}] max rel diff with ref {((ref-t)/ref).abs().max()}')
                 print (t)
                 root_result = t
             else:
                 root_result = torch.empty(args.elements, dtype=use_dtype)
             dist.broadcast(root_result, 0)
             if (t-root_result).max() != torch.zeros(1, dtype=use_dtype):
-                print (f'[{dist.get_rank()}] result diff with rank 0, correct allreduce must ensure identical result among all ranks')
+                print (f'[{rank}] result diff with rank 0, correct allreduce must ensure identical result among all ranks')
         t_total += t1-t0
+        if rank == 0:
+            print (f'iteration {i} of {loop_count}', end='\r')
     end = time.time()
     return t_total
 
