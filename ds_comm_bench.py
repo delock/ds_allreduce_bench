@@ -44,14 +44,15 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         t = t_ref.clone()
     t_total = 0.0
     rank = dist.get_rank()
-    start = time.time()
-    for i in range(loop_count):
+    for i in range(loop_count+1000):
+        if i==1000:
+            start = time.time()
         if not reuse_buffer:
             a = a_ref.clone()
             c = c_ref.clone()
             t = t_ref.clone()
         torch.matmul(a, b, out=c)
-        dist.barrier(t)
+        dist.barrier()
         t0 = time.time()
         if os.environ.get('USE_ONECCL') == '1' or args.ccl:
             dist.all_reduce(t)
