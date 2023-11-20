@@ -5,6 +5,9 @@ import deepspeed.comm as dist
 import time
 import argparse
 
+torch.manual_seed(0)
+torch.use_deterministic_algorithms(True)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--elements", type=int, default=16*1024)
 parser.add_argument("--dtype", type=str, choices=["bf16", "fp32"], default="bf16")
@@ -27,29 +30,34 @@ if dist.get_rank() == 0:
 def alloc_tensors(use_dtype):
     a = torch.ones(1024, 1024, dtype=torch.bfloat16)
     c = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    t = torch.ones(args.elements, dtype=use_dtype) * (dist.get_rank()+1.0) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype)
+
+    t = []
+    for i in range(dist.get_world_size()):
+        t.append(torch.randn(args.elements, dtype=use_dtype))
     return a, c, t
 
-def result_tensor(use_dtype):
-    result = torch.ones(args.elements, dtype=use_dtype) * ((dist.get_world_size()+1)*dist.get_world_size()/2) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype) * dist.get_world_size()
+def result_tensor(t_ref):
+    result = torch.zeros(t_ref[0].size(), dtype=t_ref[0].dtype)
+    for t in t_ref:
+        result += t
     return result
 
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
-    ref = result_tensor(use_dtype)
+    t_total = 0.0
+    rank = dist.get_rank()
     b = torch.ones(1024, 1024, dtype=torch.bfloat16)
     a_ref,c_ref,t_ref = alloc_tensors(use_dtype)
+    ref = result_tensor(t_ref)
     if reuse_buffer:
         a = a_ref.clone()
         c = c_ref.clone()
-        t = t_ref.clone()
-    t_total = 0.0
-    rank = dist.get_rank()
+        t = t_ref[rank].clone()
     start = time.time()
     for i in range(loop_count):
         if not reuse_buffer:
             a = a_ref.clone()
             c = c_ref.clone()
-            t = t_ref.clone()
+            t = t_ref[rank].clone()
         torch.matmul(a, b, out=c)
         dist.barrier(t)
         t0 = time.time()
@@ -60,7 +68,8 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         t1 = time.time()
         if i==0:
             if rank == 0:
-                print (f'[{rank}] max rel diff with ref {((ref-t)/ref).abs().max()}')
+                print (f'[{rank}] max rel diff with ref {((ref-t).abs()/(torch.max(ref.abs(), t.abs())+0.0000001)).argmax()}')
+                print (t_ref[0][2044], t_ref[1][2044], t_ref[2][2044], t[2044], ref[2044])
                 print (t)
                 root_result = t
             else:
