@@ -7,8 +7,6 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 #export CCL_ALLREDUCE=recursive_doubling
 export CCL_PROCESS_LAUNCHER=none
 
-export FI_PROVIDER=tcp
-export CCL_ATL_TRANSPORT=mpi
 export CCL_ATL_TRANSPORT=ofi
 export CCL_ATL_SHM=1
 #export CCL_ITT_LEVEL=1
