@@ -20,15 +20,56 @@ export CCL_WORKER_COUNT=1
 #export CCL_WORKER_AFFINITY=10,22,34,46,58,70,82,94
 
 #single node
-# default core binding
-#deepspeed --bind_cores_to_rank ds_bench_modified.py $*
-#deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype fp32 --elements 4194304 --ccl --cache
-deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype fp32 --elements 4194304 --cache
-# set bind core list to bind to cores other than CCL_WORKER_AFFINITY
-#deepspeed --bind_cores_to_rank --bind_core_list 0-9,12-21,24-33,36-45,48-57,60-69,72-81,84-93 ds_comm_bench.py $*
+#inference_all_reduce without cache
+    echo "default launcher, with compute"
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute
 
-#multi node
-#deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_comm_bench.py $*
+    echo "default launcher, without compute"
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768
+
+    echo "impi launcher, with compute"
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute
+
+    echo "impi launcher, without compute"
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768
+
+#inference_all_reduce with cache
+    echo "default launcher, with compute"
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute --cache
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute --cache
+
+    echo "default launcher, without compute"
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --cache
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --cache
+
+    echo "impi launcher, with compute"
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute --cache
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute --cache
+
+    echo "impi launcher, without compute"
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --cache
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --cache
+
+#all_reduce without cache (use ccl)
+    echo "default launcher, with compute"
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute
+
+    echo "default launcher, without compute"
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072
+    deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768
+
+    echo "impi launcher, with compute"
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute
+
+    echo "impi launcher, without compute"
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768
 
 #oneccl benchmark
 #mpirun -n 8 ~/oneCCL/build/examples/benchmark/benchmark -d bfloat16 -f 10240 -t 10240 -i 50
