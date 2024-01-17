@@ -14,6 +14,7 @@ parser.add_argument("--nwarmup", type=int, default=16)
 parser.add_argument("--count", type=int, default=10000)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
+parser.add_argument("--compute", action='store_true')
 parser.add_argument("--cache", action='store_true', default=False)
 args = parser.parse_args()
 
@@ -197,7 +198,8 @@ def test_allreduce(reuse_buffer, use_dtype, num_bytes_list, num_iterations, warm
                 c = c_ref.clone()
                 t = t_ref.clone()
 
-            #torch.matmul(a, b, out=c)
+            if args.compute:
+                torch.matmul(a, b, out=c)
             dist.barrier()
             t0 = time.time()
             if os.environ.get('USE_ONECCL') == '1' or args.ccl:
