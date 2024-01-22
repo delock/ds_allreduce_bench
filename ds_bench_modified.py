@@ -29,11 +29,7 @@ if dist.get_rank() == 0:
     for env in os.environ:
         print (f"'{env}': '{os.environ[env]}'")
 
-def alloc_tensors(num_bytes, use_dtype):
-    # Calculate the number of elements that fit into num_bytes for the given data type
-    element_size = torch.tensor([], dtype=use_dtype).element_size()
-    num_elements = num_bytes // element_size
-
+def alloc_tensors(num_elements, use_dtype):
     # Allocate tensor 't' with the calculated number of elements
     t = torch.ones(num_elements, dtype=use_dtype) * (dist.get_rank() + 1.0)
     t += torch.tensor([i / 64.0 for i in range(num_elements)], dtype=use_dtype)
@@ -122,6 +118,8 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
             t = t_ref.clone()
 
         time_list = []  # List to store time values per iteration
+        print (t_ref.size())
+        print (t_ref.dtype)
         for _ in range(num_iterations + warmup_iters):
             if not reuse_buffer:
                 a = a_ref.clone()
