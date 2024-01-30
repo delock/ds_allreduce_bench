@@ -48,22 +48,6 @@ def result_tensor(num_bytes, use_dtype):
     result = torch.ones(num_elements, dtype=use_dtype) * ((dist.get_world_size()+1)*dist.get_world_size()/2) + torch.tensor([i/64.0 for i in range(num_elements)], dtype=use_dtype) * dist.get_world_size()
     return result
 
-def nelem_to_bytes(num_elements, use_dtype):
-    # Calculate the number of elements that fit into num_bytes for the given data type
-    element_size = torch.tensor([], dtype=use_dtype).element_size()
-    num_bytes = num_elements * element_size
-
-    return num_bytes
-
-def generate_num_bytes_list(min_bytes, max_bytes):
-    num_bytes_list = []
-    current_bytes = min_bytes
-    while current_bytes < max_bytes:
-        num_bytes_list.append(current_bytes)
-        current_bytes *= 2
-    num_bytes_list.append(max_bytes)  # Ensure max_bytes is included in the list
-    return num_bytes_list
-
 def generate_num_elements_list(min_elements, max_elements):
     num_elements_list = []
     current_elements = min_elements
@@ -72,23 +56,6 @@ def generate_num_elements_list(min_elements, max_elements):
         current_elements *= 2
     num_elements_list.append(max_elements)  # Ensure max_elements is included in the list
     return num_elements_list
-
-def find_min_max_times(time_list):
-    # Extract just the time values from the list of (rank, time) pairs
-    time_values = [time for rank, time in time_list]
-
-    # Find the minimum and maximum time values
-    min_time = min(time_values)
-    max_time = max(time_values)
-    print(f'Minimum time across all ranks: {min_time*1000.0:.6f} ms')
-    print(f'Maximum time across all ranks: {max_time*1000.0:.6f} ms')
-
-    return min_time, max_time
-
-def print_time_by_rank(time_list):
-    for rank, time_value in time_list:
-        if rank > 0:
-            print(f'Rank {rank}: Time {time_value*1000.0:.6f} ms')
 
 # Function to print timings
 def print_head(world_size):
