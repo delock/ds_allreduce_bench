@@ -16,6 +16,9 @@ parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
 parser.add_argument("--compute", action='store_true')
 parser.add_argument("--cache", action='store_true', default=False)
+parser.add_argument("--elementlist", action='store_true', default=False)
+parser.add_argument("--outfile", type=str, default="out.csv")
+
 args = parser.parse_args()
 
 if args.dtype=="bf16":
@@ -61,6 +64,15 @@ def generate_num_bytes_list(min_bytes, max_bytes):
     num_bytes_list.append(max_bytes)  # Ensure max_bytes is included in the list
     return num_bytes_list
 
+def generate_num_elements_list(min_elements, max_elements):
+    num_elements_list = []
+    current_elements = min_elements
+    while current_elements < max_elements:
+        num_elements_list.append(current_elements)
+        current_elements *= 2
+    num_elements_list.append(max_elements)  # Ensure max_elements is included in the list
+    return num_elements_list
+
 def find_min_max_times(time_list):
     # Extract just the time values from the list of (rank, time) pairs
     time_values = [time for rank, time in time_list]
@@ -101,12 +113,41 @@ def print_timings(local_timings, num_elements, dtype, num_iterations):
     total_bytes = num_elements * bytes_per_element
     print(f"{total_bytes:14d}{num_iterations:14d}{t_min:14.2f}{t_max:14.2f}{t_avg:14.2f}{stddev:12.2f}")
 
+def create_csv_header():
+    with open(args.outfile, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(["#ranks", "collective", "reduction", "dtype", "dtype_size", "#elements/buffer",
+                             "message_size", "#buffers", "#repetitions", "t_min[usec]", "t_max[usec]",
+                             "t_avg[usec]", "stddev[%]", "wait_t_avg[usec]"])
+
+def print_timings_csv(time_list, ranks, dtype, message_size, num_repetitions):
+    # Calculate and print min, max, mean, and standard deviation
+    t_min = np.min(time_list)
+    t_max = np.max(time_list)
+    t_avg = np.mean(time_list)
+    stddev = np.std(time_list) / t_avg * 100  # Percentage
+    num_buffers=1
+    wait_t_avg=0
+    element_size = torch.tensor([], dtype=dtype).element_size()
+    num_bytes = message_size * element_size
+    collective="allreduce"
+    reduction="sum"
+    data_type_str=str(dtype).split('.')[-1]
+
+
+    with open(args.outfile, 'a', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow([ranks, collective, reduction, data_type_str, element_size, message_size, num_bytes,
+                             num_buffers, num_repetitions, t_min, t_max, t_avg, stddev, wait_t_avg])
+
+
 def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmup_iters):
     rank = dist.get_rank()
     world_size = dist.get_world_size()
 
     if rank == 0:
         print_head(world_size)
+        create_csv_header()
 
     for num_elms in num_elms_list:
         # Allocate tensors of the specified size
@@ -142,14 +183,21 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
         # evaluate and print
         if rank == 0:
             print_timings(time_list, num_elms, use_dtype, num_iterations)
+            print_timings_csv(time_list, world_size, use_dtype, num_elms, num_iterations)
 
     return time_list
 
 loop_count = args.count
 warmup_iters = args.nwarmup
 use_cache = args.cache
+num_elms_list = []
 
-num_elms_list = [args.elements]
+if args.elementlist:
+    min_elements = 2**0  # Adjust as needed
+    max_elements = args.elements
+    num_elms_list = generate_num_elements_list(min_elements, max_elements)
+else:
+    num_elms_list = [args.elements]
 print(num_elms_list)
 
 num_repetitions = 1000
