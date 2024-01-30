@@ -126,8 +126,6 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
             t = t_ref.clone()
 
         time_list = []  # List to store time values per iteration
-        print (t_ref.size())
-        print (t_ref.dtype)
         for _ in range(num_iterations + warmup_iters):
             if not reuse_buffer:
                 a = a_ref.clone()
