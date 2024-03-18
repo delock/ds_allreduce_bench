@@ -12,6 +12,12 @@ export CCL_ATL_SHM=1
 #export CCL_ITT_LEVEL=1
 export CCL_WORKER_COUNT=1
 
+
+#export CPATH=$CPATH:/home/gma/libxsmm/include
+#export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/x86_64-conda-linux-gnu/lib:/home/gma/libxsmm/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/x86_64-conda-linux-gnu/lib
+
+
 #if turn this line on, need to use a small iteration count such as 50
 #export CCL_SCHED_PROFILE=1
 
@@ -22,7 +28,10 @@ export CCL_WORKER_COUNT=1
 #single node
 #inference_all_reduce without cache
     echo "    default launcher, with compute, without cache, bf16"
+    #deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute --elementlist
     deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute
+    deepspeed --hostfile hostfile.txt --force_multi --launcher impi --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 16515072 --compute
+    exit
     deepspeed --bind_cores_to_rank ds_bench_modified.py --dtype bf16 --elements 32768 --compute
 
     echo "    default launcher, without compute, without cache, bf16"

@@ -11,6 +11,7 @@ parser.add_argument("--dtype", type=str, choices=["bf16", "fp32"], default="bf16
 parser.add_argument("--count", type=int, default=10000)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
+parser.add_argument("--tpp", action='store_true')
 args = parser.parse_args()
 
 if args.dtype=="bf16":
@@ -25,8 +26,8 @@ if dist.get_rank() == 0:
         print (f"'{env}': '{os.environ[env]}'")
 
 def alloc_tensors(use_dtype):
-    a = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    c = torch.ones(1024, 1024, dtype=torch.bfloat16)
+    a = torch.ones(1024, 1024, dtype=use_dtype)
+    c = torch.ones(1024, 1024, dtype=use_dtype)
     t = torch.ones(args.elements, dtype=use_dtype) * (dist.get_rank()+1.0) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype)
     return a, c, t
 
@@ -36,7 +37,7 @@ def result_tensor(use_dtype):
 
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
     ref = result_tensor(use_dtype)
-    b = torch.ones(1024, 1024, dtype=torch.bfloat16)
+    b = torch.ones(1024, 1024, dtype=use_dtype)
     a_ref,c_ref,t_ref = alloc_tensors(use_dtype)
     if reuse_buffer:
         a = a_ref.clone()
@@ -61,8 +62,10 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         t1 = time.time()
         if i==0:
             if rank == 0:
-                print (f'[{rank}] max rel diff with ref {((ref-t)/ref).abs().max()}')
+                print (f'[{rank}] max rel diff with ref {((ref-t)/ref).abs().max()} at pos {((ref-t)/ref).abs().argmax()}')
                 print (t)
+                print (t_ref)
+                print (ref)
                 root_result = t
             else:
                 root_result = torch.empty(args.elements, dtype=use_dtype)

@@ -19,9 +19,12 @@ export CCL_WORKER_COUNT=1
 #set CCL_WORKER_AFFINITY if necessary
 #export CCL_WORKER_AFFINITY=10,22,34,46,58,70,82,94
 
+export CPATH=$CPATH:/home/gma/libxsmm/include
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/x86_64-conda-linux-gnu/lib:/home/gma/libxsmm/lib
+
 #single node
 # default core binding
-deepspeed --bind_cores_to_rank ds_comm_bench.py $*
+deepspeed --num_gpu 2 --bind_cores_to_rank ds_comm_bench.py $*
 # set bind core list to bind to cores other than CCL_WORKER_AFFINITY
 #deepspeed --bind_cores_to_rank --bind_core_list 0-9,12-21,24-33,36-45,48-57,60-69,72-81,84-93 ds_comm_bench.py $*
 

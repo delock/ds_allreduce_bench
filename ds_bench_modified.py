@@ -6,7 +6,7 @@ import time
 import argparse
 import numpy as np
 import csv
-import intel_extension_for_pytorch as ipex
+#import intel_extension_for_pytorch as ipex
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--elements", type=int, default=16*1024)
@@ -15,6 +15,7 @@ parser.add_argument("--nwarmup", type=int, default=16)
 parser.add_argument("--count", type=int, default=10000)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
+parser.add_argument("--tpp", action='store_true')
 parser.add_argument("--ipex", action='store_true')
 parser.add_argument("--compute", action='store_true')
 parser.add_argument("--cache", action='store_true', default=False)
@@ -142,7 +143,10 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
                 dist.all_reduce(t)
             elif args.ipex:
                 #ipex.cpu.comm.inference_allreduce_add(t)
-                torch.ops.torch_ipex.inference_all_reduce_add(t)
+                #torch.ops.torch_ipex.inference_all_reduce_add(t)
+                pass
+            elif args.tpp:
+                dist.tpp_all_reduce(t, async_op=False)
             else:
                 dist.inference_all_reduce(t, async_op=False)
             t1 = time.time()
