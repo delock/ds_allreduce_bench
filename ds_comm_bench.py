@@ -19,6 +19,7 @@ elif args.dtype=="fp32":
     dtype = torch.float32
 
 deepspeed.init_distributed()
+torch.manual_seed(dist.get_rank())
 
 if dist.get_rank() == 0:
     for env in os.environ:
@@ -27,17 +28,13 @@ if dist.get_rank() == 0:
 def alloc_tensors(use_dtype):
     a = torch.ones(1024, 1024, dtype=torch.bfloat16)
     c = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    t = torch.ones(args.elements, dtype=use_dtype) * (dist.get_rank()+1.0) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype)
-    return a, c, t
-
-def result_tensor(use_dtype):
-    result = torch.ones(args.elements, dtype=use_dtype) * ((dist.get_world_size()+1)*dist.get_world_size()/2) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype) * dist.get_world_size()
-    return result
+    t_fp = torch.rand(args.elements, dtype=torch.float)
+    t = t_fp.to(dtype=use_dtype)
+    return a, c, t, t_fp
 
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
-    ref = result_tensor(use_dtype)
     b = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    a_ref,c_ref,t_ref = alloc_tensors(use_dtype)
+    a_ref,c_ref,t_ref,t_fp_ref = alloc_tensors(use_dtype)
     if reuse_buffer:
         a = a_ref.clone()
         c = c_ref.clone()
@@ -60,8 +57,9 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
             dist.inference_all_reduce(t, async_op=False)
         t1 = time.time()
         if i==0:
+            dist.all_reduce(t_fp_ref)
             if rank == 0:
-                print (f'[{rank}] max rel diff with ref {((ref-t)/ref).abs().max()}')
+                print (f'[{rank}] max rel diff with ref {((t_fp_ref-t)/t_fp_ref).abs().max()}')
                 print (t)
                 root_result = t
             else:
