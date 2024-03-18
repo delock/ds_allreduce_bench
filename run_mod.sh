@@ -12,6 +12,7 @@ export CCL_ATL_SHM=1
 #export CCL_ITT_LEVEL=1
 export CCL_WORKER_COUNT=1
 
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/x86_64-conda-linux-gnu/lib
 #if turn this line on, need to use a small iteration count such as 50
 #export CCL_SCHED_PROFILE=1
 
