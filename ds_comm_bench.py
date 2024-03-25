@@ -57,6 +57,7 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
             dist.inference_all_reduce(t, async_op=False)
         t1 = time.time()
         if i==0:
+            first_time_result = t
             dist.all_reduce(t_fp_ref)
             if rank == 0:
                 print (f'[{rank}] max rel diff with ref {((t_fp_ref-t)/t_fp_ref).abs().max()}')
@@ -67,6 +68,8 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
             dist.broadcast(root_result, 0)
             if (t-root_result).max() != torch.zeros(1, dtype=use_dtype):
                 print (f'[{rank}] result diff with rank 0, correct allreduce must ensure identical result among all ranks')
+        if (t-first_time_result).max() != torch.zeros(1, dtype=use_dtype):
+                print (f'[{rank}] result diff with first time result, correct allreduce must ensure identical result between runs')
         t_total += t1-t0
         if rank == 0:
             print (f'iteration {i} of {loop_count}', end='\r')
