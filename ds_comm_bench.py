@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--elements", type=int, default=16*1024)
 parser.add_argument("--dtype", type=str, choices=["bf16", "fp32"], default="bf16")
 parser.add_argument("--count", type=int, default=10000)
+parser.add_argument("--warmup", type=int, default=1000)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
 args = parser.parse_args()
@@ -29,7 +30,7 @@ def alloc_tensors(use_dtype):
     a = torch.ones(1024, 1024, dtype=torch.bfloat16)
     c = torch.ones(1024, 1024, dtype=torch.bfloat16)
     t_fp = torch.rand(args.elements, dtype=torch.float)
-    t = t_fp.to(dtype=use_dtype)
+    t = t_fp.to(dtype=use_dtype).clone()
     return a, c, t, t_fp
 
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
@@ -41,8 +42,8 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         t = t_ref.clone()
     t_total = 0.0
     rank = dist.get_rank()
-    for i in range(loop_count+1000):
-        if i==1000:
+    for i in range(loop_count+args.warmup):
+        if i==args.warmup:
             start = time.time()
         if not reuse_buffer:
             a = a_ref.clone()
@@ -57,7 +58,7 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
             dist.inference_all_reduce(t, async_op=False)
         t1 = time.time()
         if i==0:
-            first_time_result = t
+            first_time_result = t.clone()
             dist.all_reduce(t_fp_ref)
             if rank == 0:
                 print (f'[{rank}] max rel diff with ref {((t_fp_ref-t)/t_fp_ref).abs().max()}')
@@ -66,10 +67,10 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
             else:
                 root_result = torch.empty(args.elements, dtype=use_dtype)
             dist.broadcast(root_result, 0)
-            if (t-root_result).max() != torch.zeros(1, dtype=use_dtype):
+            if (t-root_result).abs().max() != torch.zeros(1, dtype=use_dtype):
                 print (f'[{rank}] result diff with rank 0, correct allreduce must ensure identical result among all ranks')
-        if (t-first_time_result).max() != torch.zeros(1, dtype=use_dtype):
-                print (f'[{rank}] result diff with first time result, correct allreduce must ensure identical result between runs')
+        if (t-first_time_result).abs().max() != torch.zeros(1, dtype=use_dtype):
+                print (f'[{rank}] result diff with first time result, correct allreduce must ensure identical result between runs.  Max diff={(t-first_time_result).abs().max()}')
         t_total += t1-t0
         if rank == 0:
             print (f'iteration {i} of {loop_count}', end='\r')
