@@ -139,7 +139,7 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
             if os.environ.get('USE_ONECCL') == '1' or args.ccl:
                 dist.all_reduce(t)
             else:
-                dist.inference_all_reduce(t, async_op=False)
+                dist.inference_all_reduce(t)
             t1 = time.time()
 
             if _ >= warmup_iters:

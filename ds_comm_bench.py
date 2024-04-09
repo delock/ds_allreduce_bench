@@ -55,7 +55,7 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
         if os.environ.get('USE_ONECCL') == '1' or args.ccl:
             dist.all_reduce(t)
         else:
-            dist.inference_all_reduce(t, async_op=False)
+            dist.inference_all_reduce(t)
         t1 = time.time()
         if i==0:
             first_time_result = t.clone()
