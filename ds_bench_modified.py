@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import deepspeed
 import deepspeed.comm as dist
@@ -6,6 +7,11 @@ import time
 import argparse
 import numpy as np
 import csv
+try:
+    import intel_extension_for_pytorch as ipex
+    ipex_loaded = True
+except ImportError:
+    ipex_loaded = False
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--elements", type=int, default=16*1024)
@@ -14,6 +20,7 @@ parser.add_argument("--nwarmup", type=int, default=16)
 parser.add_argument("--count", type=int, default=10000)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
+parser.add_argument("--ipex", action='store_true')
 parser.add_argument("--compute", action='store_true')
 parser.add_argument("--cache", action='store_true', default=False)
 parser.add_argument("--elementlist", action='store_true', default=False)
@@ -138,6 +145,12 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
             t0 = time.time()
             if os.environ.get('USE_ONECCL') == '1' or args.ccl:
                 dist.all_reduce(t)
+            elif args.ipex:
+                if ipex_loaded:
+                    ipex.llm.distributed.all_reduce_add(t)
+                else:
+                    print ("Intel Extension for PyTorch is not installed yet.");
+                    sys.exit(1)
             else:
                 dist.inference_all_reduce(t)
             t1 = time.time()
