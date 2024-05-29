@@ -6,3 +6,13 @@ usage:
 * --dtype: data type (bf16 or fp32), default bf16
 * --count: number of iterations, default 10000
 * --ccl: if present use oneccl allreduce, otherwise call deepspeed inference_all_reduce which intend to optimize for inference
+
+validate correctness:
+`./validate.sh`
+`./validate.sh --ccl` -- validate ccl implementation
+`./validate.sh --ipex` -- validate ipex implementation
+
+performance test:
+`./run_mod_sweep.sh`
+`./run_mod_sweep.sh --ccl` -- test ccl performance
+`./run_mod_sweep.sh --ipex` -- test ipex performance
