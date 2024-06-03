@@ -14,6 +14,8 @@
 * `./validate.sh --ipex` -- validate ipex implementation
 
 # performance test:
-* `./run_mod_sweep.sh`
-* `./run_mod_sweep.sh --ccl` -- test ccl performance
+* `./run_mod_sweep.sh` -- test inference_all_reduce performance, which is deepspeed built-in implmentation
 * `./run_mod_sweep.sh --ipex` -- test ipex performance
+For the following two, you need to have oneCCL binding for PyTorch and oneCCL installed in your environment
+* `./run_mod_sweep.sh --ccl` -- test ccl performance
+* `./run_mod_sweep.sh --torch` -- test torch.distributed performance, when oneCCL binding for PyTorch is installed, this will test allreduce performance through oneCCL binding for PyTorch.

@@ -21,6 +21,7 @@ parser.add_argument("--count", type=int, default=10000)
 parser.add_argument("--local_rank", type=int)
 parser.add_argument("--ccl", action='store_true')
 parser.add_argument("--ipex", action='store_true')
+parser.add_argument("--torch", action='store_true')
 parser.add_argument("--compute", action='store_true')
 parser.add_argument("--cache", action='store_true', default=False)
 parser.add_argument("--elementlist", action='store_true', default=False)
@@ -151,6 +152,8 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
                 else:
                     print ("Intel Extension for PyTorch is not installed yet.");
                     sys.exit(1)
+            elif args.torch:
+                torch.distributed.all_reduce(t)
             else:
                 dist.inference_all_reduce(t)
             t1 = time.time()
