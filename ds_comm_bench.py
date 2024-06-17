@@ -13,7 +13,7 @@ except ImportError:
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--elements", type=int, default=16*1024)
-parser.add_argument("--dtype", type=str, choices=["bf16", "fp32"], default="bf16")
+parser.add_argument("--dtype", type=str, choices=["bf16", "fp32", "fp16"], default="bf16")
 parser.add_argument("--count", type=int, default=10000)
 parser.add_argument("--warmup", type=int, default=1000)
 parser.add_argument("--local_rank", type=int)
@@ -25,6 +25,8 @@ if args.dtype=="bf16":
     dtype = torch.bfloat16
 elif args.dtype=="fp32":
     dtype = torch.float32
+elif args.dtype=="fp16":
+    dtype = torch.float16
 
 deepspeed.init_distributed()
 torch.manual_seed(dist.get_rank())
