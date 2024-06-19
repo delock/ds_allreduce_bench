@@ -22,6 +22,8 @@ export CCL_WORKER_COUNT=1
 #single node
 # default core binding
 #deepspeed --bind_cores_to_rank ds_comm_bench.py $*
+deepspeed --num_accelerators 1 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 $* 2>&1 |tee result.txt
+deepspeed --num_accelerators 1 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 2 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 $* 2>&1 |tee result.txt
 deepspeed --num_accelerators 2 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 3 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 $* 2>&1 |tee -a result.txt
@@ -34,6 +36,22 @@ deepspeed --num_accelerators 16 --bind_cores_to_rank ds_comm_bench.py --elements
 deepspeed --num_accelerators 16 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 17 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 17 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 1 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 1 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 2 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 2 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 3 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 3 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 6 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 6 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 11 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 11 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 16 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 16 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 17 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 17 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp16 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 1 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp32 $* 2>&1 |tee -a result.txt
+deepspeed --num_accelerators 1 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp32 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 2 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp32 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 2 --bind_cores_to_rank ds_comm_bench.py --elements 1048576 --count 100 --dtype fp32 $* 2>&1 |tee -a result.txt
 deepspeed --num_accelerators 3 --bind_cores_to_rank ds_comm_bench.py --elements 1024 --count 100 --dtype fp32 $* 2>&1 |tee -a result.txt
