@@ -3,6 +3,7 @@ import sys
 import torch
 import deepspeed
 import deepspeed.comm as dist
+from deepspeed.accelerator import get_accelerator
 import time
 import argparse
 try:
@@ -36,14 +37,14 @@ if dist.get_rank() == 0:
         print (f"'{env}': '{os.environ[env]}'")
 
 def alloc_tensors(use_dtype):
-    a = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    c = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    t_fp = torch.rand(args.elements, dtype=torch.float)
-    t = t_fp.to(dtype=use_dtype).clone()
+    a = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name())
+    c = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name())
+    t_fp = torch.rand(args.elements, dtype=torch.float).to(get_accelerator().device_name())
+    t = t_fp.to(dtype=use_dtype).clone().to(get_accelerator().device_name())
     return a, c, t, t_fp
 
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
-    b = torch.ones(1024, 1024, dtype=torch.bfloat16)
+    b = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name())
     a_ref,c_ref,t_ref,t_fp_ref = alloc_tensors(use_dtype)
     if reuse_buffer:
         a = a_ref.clone()
