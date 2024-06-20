@@ -37,14 +37,14 @@ if dist.get_rank() == 0:
         print (f"'{env}': '{os.environ[env]}'")
 
 def alloc_tensors(use_dtype):
-    a = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name())
-    c = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name())
-    t_fp = torch.rand(args.elements, dtype=torch.float).to(get_accelerator().device_name())
-    t = t_fp.to(dtype=use_dtype).clone().to(get_accelerator().device_name())
+    a = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name(dist.get_rank()))
+    c = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name(dist.get_rank()))
+    t_fp = torch.rand(args.elements, dtype=torch.float).to(get_accelerator().device_name(dist.get_rank()))
+    t = t_fp.to(dtype=use_dtype).clone().to(get_accelerator().device_name(dist.get_rank()))
     return a, c, t, t_fp
 
 def test_allreduce(reuse_buffer, use_dtype, loop_count):
-    b = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name())
+    b = torch.ones(1024, 1024, dtype=torch.bfloat16).to(get_accelerator().device_name(dist.get_rank()))
     a_ref,c_ref,t_ref,t_fp_ref = alloc_tensors(use_dtype)
     if reuse_buffer:
         a = a_ref.clone()
@@ -81,11 +81,11 @@ def test_allreduce(reuse_buffer, use_dtype, loop_count):
                 print (t)
                 root_result = t
             else:
-                root_result = torch.empty(args.elements, dtype=use_dtype)
+                root_result = torch.empty(args.elements, dtype=use_dtype, device=get_accelerator().device_name(rank))
             dist.broadcast(root_result, 0)
-            if (t-root_result).abs().max() != torch.zeros(1, dtype=use_dtype):
+            if (t-root_result).abs().max() != torch.zeros(1, dtype=use_dtype, device=get_accelerator().device_name(rank)):
                 print (f'[{rank}] result diff with rank 0, correct allreduce must ensure identical result among all ranks')
-        if (t-first_time_result).abs().max() != torch.zeros(1, dtype=use_dtype):
+        if (t-first_time_result).abs().max() != torch.zeros(1, dtype=use_dtype, device=get_accelerator().device_name(rank)):
                 print (f'[{rank}] result diff with first time result, correct allreduce must ensure identical result between runs.  Max diff={(t-first_time_result).abs().max()}')
         t_total += t1-t0
         if rank == 0:
