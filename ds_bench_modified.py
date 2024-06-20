@@ -3,6 +3,7 @@ import sys
 import torch
 import deepspeed
 import deepspeed.comm as dist
+from deepspeed import get_accelerator
 import time
 import argparse
 import numpy as np
@@ -44,18 +45,18 @@ if dist.get_rank() == 0:
 
 def alloc_tensors(num_elements, use_dtype):
     # Allocate tensor 't' with the calculated number of elements
-    t = torch.ones(num_elements, dtype=use_dtype) * (dist.get_rank() + 1.0)
-    t += torch.tensor([i / 64.0 for i in range(num_elements)], dtype=use_dtype)
+    t = torch.ones(num_elements, dtype=use_dtype, device=get_accelerator().device_name(dist.get_rank())) * (dist.get_rank() + 1.0)
+    t += torch.tensor([i / 64.0 for i in range(num_elements)], dtype=use_dtype, device=get_accelerator().device_name(dist.get_rank()))
 
-    a = torch.ones(1024, 1024, dtype=torch.bfloat16)
-    c = torch.ones(1024, 1024, dtype=torch.bfloat16)
+    a = torch.ones(1024, 1024, dtype=torch.bfloat16, device=get_accelerator().device_name(dist.get_rank()))
+    c = torch.ones(1024, 1024, dtype=torch.bfloat16, device=get_accelerator().device_name(dist.get_rank()))
     #t = torch.ones(args.elements, dtype=use_dtype) * (dist.get_rank()+1.0) + torch.tensor([i/64.0 for i in range(args.elements)], dtype=use_dtype)
     return a, c, t
 
 def result_tensor(num_bytes, use_dtype):
     element_size = torch.tensor([], dtype=use_dtype).element_size()
     num_elements = num_bytes // element_size
-    result = torch.ones(num_elements, dtype=use_dtype) * ((dist.get_world_size()+1)*dist.get_world_size()/2) + torch.tensor([i/64.0 for i in range(num_elements)], dtype=use_dtype) * dist.get_world_size()
+    result = torch.ones(num_elements, dtype=use_dtype, device=get_accelerator().device_name(dist.get_rank())) * ((dist.get_world_size()+1)*dist.get_world_size()/2) + torch.tensor([i/64.0 for i in range(num_elements)], dtype=use_dtype, device=get_accelerator().device_name(dist.get_rank())) * dist.get_world_size()
     return result
 
 def generate_num_elements_list(min_elements, max_elements):
@@ -128,7 +129,7 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
 
     for num_elms in num_elms_list:
         # Allocate tensors of the specified size
-        b = torch.ones(1024, 1024, dtype=torch.bfloat16)
+        b = torch.ones(1024, 1024, dtype=torch.bfloat16, device=get_accelerator().device_name(dist.get_rank()))
         a_ref,c_ref,t_ref = alloc_tensors(num_elms, use_dtype)
         if reuse_buffer:
             a = a_ref.clone()
@@ -158,6 +159,7 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
                 torch.distributed.all_reduce(t)
             else:
                 dist.inference_all_reduce(t)
+            get_accelerator().synchronize()
             t1 = time.time()
 
             if _ >= warmup_iters:
