@@ -176,7 +176,8 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
             # step 4: use this list for print_timings and print_timings_csv
             avg_time = np.mean(time_list)
             t_time = torch.tensor(avg_time)
-            avg_times = dist.all_gather(t_time)
+            avg_times = [torch.zeros_like(t_time) for _ in range(world_size)]
+            dist.all_gather(avg_times, t_time)
             if rank == 0:
                 print_timings(avg_times, num_elms, use_dtype, num_iterations)
                 print_timings_csv(avg_times, world_size, use_dtype, num_elms, num_iterations)
