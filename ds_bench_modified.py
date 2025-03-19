@@ -174,7 +174,7 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
             # step 2: for each sub time list, compute average time of the list
             # step 3: compile a list for average time for each rank
             # step 4: use this list for print_timings and print_timings_csv
-            all_times = dist.all_gather(time_list)
+            all_times = dist.all_gather(torch.tensor(time_list)).tolist()
             avg_times = [np.mean(times) for times in all_times]
             if rank == 0:
                 print_timings(avg_times, num_elms, use_dtype, num_iterations)
