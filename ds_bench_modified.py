@@ -27,6 +27,7 @@ parser.add_argument("--compute", action='store_true')
 parser.add_argument("--cache", action='store_true', default=False)
 parser.add_argument("--elementlist", action='store_true', default=False)
 parser.add_argument("--outfile", type=str, default="out.csv")
+parser.add_argument("--variance_method", type=str, choices=["x-rank", "x-iter"], default="x-iter")
 
 args = parser.parse_args()
 
@@ -166,9 +167,24 @@ def test_allreduce(reuse_buffer, use_dtype, num_elms_list, num_iterations, warmu
                 time_list.append((t1 - t0) * 1e6)  # Convert to microseconds
 
         # evaluate and print
-        if rank == 0:
-            print_timings(time_list, num_elms, use_dtype, num_iterations)
-            print_timings_csv(time_list, world_size, use_dtype, num_elms, num_iterations)
+        if args.variance_method == "x-rank":
+            # compute average of each rank, then compute min/max/avg variance for all ranks
+            # use dist to get times from each rank
+            # step 1: gather all times from all ranks
+            # step 2: for each sub time list, compute average time of the list
+            # step 3: compile a list for average time for each rank
+            # step 4: use this list for print_timings and print_timings_csv
+            avg_time = np.mean(time_list)
+            t_time = torch.tensor(avg_time)
+            avg_times = [torch.zeros_like(t_time) for _ in range(world_size)]
+            dist.all_gather(avg_times, t_time)
+            if rank == 0:
+                print_timings(avg_times, num_elms, use_dtype, num_iterations)
+                print_timings_csv(avg_times, world_size, use_dtype, num_elms, num_iterations)
+        else:
+            if rank == 0:
+                print_timings(time_list, num_elms, use_dtype, num_iterations)
+                print_timings_csv(time_list, world_size, use_dtype, num_elms, num_iterations)
 
     return time_list
 
